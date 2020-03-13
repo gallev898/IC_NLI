@@ -8,6 +8,7 @@ import torch
 import torch.optim as optim
 import torchvision.transforms as transforms
 from torch import nn
+from dataloaders.datasets import CaptionDataset
 
 
 parser = argparse.ArgumentParser()
@@ -19,9 +20,15 @@ parser.add_argument('--ex_dup', default=10, type=int)
 parser.add_argument('--debug', default=False, action='store_true')
 parser.add_argument('--embedding_size', default=512, type=int)
 args = parser.parse_args()
+
+# section: W&B
+if not args.run_local:
+    # wandb login a8c4526db3e8aa11d7b2674d7c257c58313b45ca
+    import wandb
+    wandb.init(project="IC_NLI", name=args.runname, dir='/yoav_stg/gshalev/wandb')
+
 data_normalization = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 
-from dataloaders.datasets import CaptionDataset
 
 
 data_folder = '/home/gal/Desktop/Pycharm_projects/image_captioning/output_folder'
@@ -172,6 +179,10 @@ if __name__ == '__main__':
     net = BiLSTM_withMaxPooling(args.embedding_size, args.embedding_size, device)
     net.to(device)
 
+    # section: wandb
+    if not args.run_local:
+        wandb.watch(net)
+
     optimizer = optim.SGD(net.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
     criterion = nn.CrossEntropyLoss()
 
@@ -302,7 +313,17 @@ if __name__ == '__main__':
 
             last_dev_epoch_running_loss = dev_epoch_runing_loss
 
-            print('Train epochs running accuracy: {}'.format(epoch_running_accuracy / train_batch_i))
-            print('Train epochs running loss {}'.format(epoch_running_loss / float(train_batch_i)))
-            print('Dev epoch accuracy: {}'.format(np.average(dev_batch_accuracy)))
-            print('Dev epoch loss: {}'.format(np.average(dev_batch_loss)))
+            train_accuracy = epoch_running_accuracy / float(train_batch_i)
+            train_loss = epoch_running_loss / float(train_batch_i)
+            dev_accuracy = np.average(dev_batch_accuracy)
+            dev_loss = np.average(dev_batch_loss)
+            print('Train epochs running accuracy: {}'.format(train_accuracy))
+            print('Train epochs running loss {}'.format(train_loss))
+            print('Dev epoch accuracy: {}'.format(dev_accuracy))
+            print('Dev epoch loss: {}'.format(dev_loss))
+
+            if not args.run_local:
+                wandb.log({"Train Accuracy": train_accuracy,
+                           "Train Loss": train_loss,
+                           'Dev Accuracy': dev_accuracy,
+                           'Dev Loss': dev_loss})
