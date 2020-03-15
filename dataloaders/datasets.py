@@ -1,8 +1,9 @@
 import sys
 
 
+sys.path.append('/home/mlspeech/gshalev/gal/IC_NLI')
 sys.path.append('/home/mlspeech/gshalev/anaconda3/envs/python3_env/lib')
-sys.path.append('/home/mlspeech/gshalev/gal/image_cap2')
+
 
 import os
 import h5py
